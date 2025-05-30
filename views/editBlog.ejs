@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Blog</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            padding: 20px;
+            margin: 0;
+        }
+
+        form {
+            background-color: white;
+            max-width: 600px;
+            margin: 60px auto 20px; /* 👈 top margin added here */
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .image-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .image-container img {
+            width: 300px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            margin: 5px;
+            /* color: white; */
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .btn-edit {
+            background-color: #ffc107 !important;
+        }
+
+        .btn-delete {
+            background-color: #17a2b8 !important;
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, #28a745, #218838);
+            width: 100%;
+            font-size: 16px;
+            font-weight: bold;
+            padding: 12px;
+            letter-spacing: 1px;
+        }
+
+        .btn-submit:hover {
+            background: linear-gradient(135deg, #218838, #1e7e34);
+            transform: scale(1.02);
+        }
+
+        .btn:hover {
+            opacity: 0.95;
+        }
+
+        a {
+            color: white;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+    <%- include('Navbar')  %>
+    <%- include('Sidebar')  %>
+
+    <form action="/admin/edit-blog/<%= editblog.id %>" method="post">
+        <h1>Edit Blog</h1>
+
+        <label>Title:</label>
+        <input type="text" name="title" value="<%= editblog.title %>">
+
+        <label>Description:</label>
+        <input type="text" name="desc" value="<%= editblog.desc %>">
+
+        <% if(editblog.image && editblog.image.length > 0) { %>
+            <% editblog.image.forEach((img, index) => { %>
+                <div class="image-container">
+                    <img src="<%= img %>" alt="blog image">
+                    <br>
+                    <a href="/admin/edit-image/<%= editblog._id %>/<%= index %>" class="btn btn-edit">Edit</a>
+                    <a href="/admin/delete-image/<%= editblog._id %>/<%= index %>" class="btn btn-delete">Delete</a>
+                </div>
+            <% }) %>
+        <% } else { %>
+            <p style="text-align: center;">No image available</p>
+        <% } %>
+
+        <button type="submit" class="btn btn-submit">Update Blog</button>
+    </form>
+
+</body>
+</html>

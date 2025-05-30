@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f6f9;
+}
+
+/* Layout wrapper */
+.layout {
+    display: flex;
+    min-height: 100vh; /* ensure full height */
+}
+
+/* Sidebar (included file, but safe to set min-width for layout stability) */
+.sidebar {
+    min-width: 250px;
+}
+
+/* Main content */
+.main-content {
+    margin-left: 250px;
+    padding: 20px;
+    flex-grow: 1;
+    margin-top: 70px; /* adjusted for fixed navbar height + some gap */
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    color: #333;
+    min-height: calc(100vh - 90px); /* full height minus navbar + margin */
+}
+
+/* Adjust for smaller screens */
+@media (max-width: 768px) {
+    .main-content {
+        margin-left: 0;
+        padding: 15px;
+        margin-top: 20px;
+        min-height: auto;
+    }
+}
+
+h1 {
+    margin: 0;
+    font-weight: 600;
+    font-size: 2rem;
+    text-align: center;
+}
+
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <%- include('Navbar') %>
+
+    <!-- Page layout with sidebar and main -->
+    <div class="layout">
+        <!-- Sidebar -->
+        <%- include('Sidebar') %>
+
+        <!-- Main Dashboard Area -->
+        <div class="main-content">
+            <h1>Welcome <%= email %></h1>
+        </div>
+    </div>
+
+</body>
+</html>

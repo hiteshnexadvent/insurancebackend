@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Image</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: linear-gradient(to right, #00c6ff, #0072ff);
+        }
+
+        .container {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 90%;
+            max-width: 420px;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            color: #222;
+            font-size: 22px;
+        }
+
+        img {
+            width: 100%;
+            max-height: 250px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 2px solid #007bff;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            margin-top: 12px;
+            border: 2px dashed #007bff;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #f9f9f9;
+            transition: 0.3s;
+        }
+
+        input[type="file"]:hover {
+            background: #eef5ff;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            margin-top: 18px;
+            background: #007bff;
+            color: white;
+            font-size: 17px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Edit Image</h2>
+
+        <img src="<%= blogindex %>" alt="Blog Image">
+
+        <form action="/admin/edit-image/<%= imgid %>/<%= imgindex %>" method="post" enctype="multipart/form-data">
+            <input type="file" name="file" accept="image/*" multiple required>
+            <button type="submit" class="btn">Update Image</button>
+        </form>
+    </div>
+
+</body>
+</html>
