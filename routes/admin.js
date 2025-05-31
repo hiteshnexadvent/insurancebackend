@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router(); 
 const adminMong = require('../models/Admin_Mong');
 const blogMong = require('../models/Blog_Mong');
+const coverimagemong = require('../models/BlogCover.Mong');
 const multer = require('multer');
 const path = require('path');
 
@@ -108,7 +109,7 @@ const upload = multer({
         fileSize: 5 * 1024 * 1024,
     },
     fileFilter: (req, file, cb) => {
-        const fileType = /jpg|jpeg|avif|png|<webp /;
+        const fileType = /jpg|jpeg|avif|png|webp/;
         const extname = fileType.test(path.extname(file.originalname).toLowerCase());
         const mimetype = fileType.test(file.mimetype);
 
@@ -302,6 +303,108 @@ router.get('/delete-image/:imgid/:imgindex',async (req,res) => {
         res.send(err.message);
     }
 })
+
+// ---------------------------------- page cover image
+
+const uploadcoverimage = multer({
+    storage: mystorage,
+    limits: {
+        fileSize: 5 * 1024 * 1024,
+    },
+    fileFilter: (req, file, cb) => {
+        const fileType = /jpg|jpeg|avif|png|webp/;
+        const extname = fileType.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = fileType.test(file.mimetype);
+
+        if (extname && mimetype) {
+            cb(null, true);
+        } else {
+            cb(new Error("Image format not supported"));
+        }
+    }
+})
+
+router.get('/add-cover', (req, res) => {
+
+    if (!req.session.adminEmail) {
+       return res.render('adminLogin');
+    } else {
+
+        res.render('AddCoverImg');
+    }
+})
+
+router.post('/add-coverpage-image',uploadcoverimage.single('image'),async (req,res) => {
+
+    try {
+        
+    const coverImagePath = `/uploads/${req.file.filename}`;
+    const newCoverimg = new coverimagemong({
+        image: coverImagePath
+    })
+        
+        await newCoverimg.save();
+        return res.send('<script>alert("image added successfully")</script>');
+
+    }
+    catch (err) {
+        console.log(err);
+    }
+
+    
+})
+
+// --------------------------------- manage cover image
+
+router.get('/manage-cover',async (req,res) => {
+    if (!req.session.adminEmail) {
+        res.render('adminLogin');
+    } 
+    try {
+        
+        const coverimage = await coverimagemong.findOne();
+
+        res.render('manageCoverImg', { coverimage });
+
+    }
+    catch (err) {
+        console.log(err);
+    }
+})
+
+router.get('/manage-coverapi',async (req,res) => {
+    try {
+        
+        const coverimage = await coverimagemong.findOne();
+
+        res.json(coverimage);
+
+    }
+    catch (err) {
+        console.log(err);
+    }
+})
+
+router.post("/edit-coverimage/:imgid", uploadcoverimage.single("file"), async (req, res) => {
+  try {
+    const { imgid } = req.params;
+    const file = req.file;
+
+    if (!file) return res.send("No file uploaded");
+
+    const cover = await coverimagemong.findById(imgid);
+    if (!cover) return res.send("Cover not found");
+
+    const newImagePath = `/uploads/${file.filename}`;
+    cover.image = newImagePath;
+
+    await cover.save();
+    return res.send('<script>alert("Image updated successfully"); window.location.href="/admin/manage-cover";</script>');
+  } catch (err) {
+    res.send("Something went wrong");
+  }
+});
+
 
 
 
