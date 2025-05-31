@@ -8,6 +8,7 @@ const session = require('express-session');
 const router = require('./routes/admin');
 const dotenv = require('dotenv');
 const path = require('path');
+const cors = require('cors');
 dotenv.config();
 app.set("views", path.join(__dirname, "views"));
 
@@ -15,6 +16,13 @@ app.set("views", path.join(__dirname, "views"));
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// -------------------------------- cors
+
+app.use(cors({
+  origin: process.env.BACKEND_API_URL,
+  credentials: true,
+}))
 
 
 // -------------------------------- session

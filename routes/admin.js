@@ -169,6 +169,18 @@ router.get('/manage-blog',async (req, res) => {
     }
 })
 
+router.get('/manage-blogapi',async (req, res) => {
+     try {
+            const blog = await blogMong.find();
+
+            // res.render('manageBlogs', { blog });
+            res.json(blog);
+    }   
+     catch (err) {
+         console.log(err);
+    }
+})
+
 // ---------------------------------- edit blogs
 
 router.get('/edit-blog/:id',async (req,res) => {
