@@ -20,12 +20,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // -------------------------------- cors
 
 app.use(cors({
-  origin: process.env.BACKEND_API_URL,
+  origin: process.env.REACT_APP_API_URL,
   credentials: true,
 }))
 
 
-// -------------------------------- session
+// -------------------------------- session for live
 
 // app.use(session({
 //     secret: process.env.SECRET_SESSION_KEY,
@@ -39,16 +39,18 @@ app.use(cors({
 //     }
 // }))
 
+// -------------------------------- session for localhost
+
 app.use(
     session({
-      secret: "hitesh2822", // Replace with a secure, randomly generated key
+      secret: "hitesh2822", 
       resave: false,
       saveUninitialized: true,
       cookie: { 
         secure: false,
         maxAge: 24 * 60 * 60 * 1000,
         httpOnly: true
-      }, // Set `secure: true` only if using HTTPS
+      }, 
     })
   );
 

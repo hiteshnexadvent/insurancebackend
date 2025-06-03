@@ -3,14 +3,16 @@ const router = express.Router();
 const adminMong = require('../models/Admin_Mong');
 const blogMong = require('../models/Blog_Mong');
 const coverimagemong = require('../models/BlogCover.Mong');
+const userMong = require('../models/UserQuery_Mong');
 const multer = require('multer');
 const path = require('path');
+const sendMailtoAdmin = require('../utils/SendMail');
 
 router.get('/adminlogin', (req, res) => {
     res.render('adminLogin');
 })
 
-router.post('/adminlogin',async (req,res) => {
+router.post('/login',async (req,res) => {
     
     const { email, pass } = req.body;
 
@@ -406,6 +408,49 @@ router.post("/edit-coverimage/:imgid", uploadcoverimage.single("file"), async (r
 });
 
 
+// ----------------------------------- contact form
+
+router.post('/user-details',async (req,res) => {
+    try {
+        const { name, email, subject, message } = req.body;
+
+        const exist = await userMong.findOne({ email });
+
+        if (exist) {
+            return res.status(409).json({ message: 'user already registerd' });
+            
+        }
+
+        const newUser = new userMong({
+            name, email, subject, message
+        })
+
+        await newUser.save();
+        await sendMailtoAdmin({ name, email, subject, message });
+        return res.status(201).json({message:'User registerd successfull'});
+
+    }
+    catch (err) {
+        return res.status(500).json({message:err.message});
+    }
+})
+
+// ---------------------------- manage users
+
+router.get('/manage-user', async(req, res) => {
+    if (!req.session.adminEmail) {
+        res.render('adminLogin');
+    }
+
+    try {
+        const userr = await userMong.find();
+
+        res.render('userInfo', { userr });
+    }
+    catch (err) {
+        res.send('error occured');
+    }
+})
 
 
 
