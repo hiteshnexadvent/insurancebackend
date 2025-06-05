@@ -1,56 +1,230 @@
 const express = require('express');
 const router = express.Router(); 
 const adminMong = require('../models/Admin_Mong');
-const blogMong = require('../models/Blog_Mong');
 const coverimagemong = require('../models/BlogCover.Mong');
 const userMong = require('../models/UserQuery_Mong');
+const reviewMong = require('../models/Review_Mong');
 const multer = require('multer');
 const path = require('path');
 const sendMailtoAdmin = require('../utils/SendMail');
+const sendOtptoAdmin = require('../utils/sendotp');
+const forgetPasswordOtp = require('../utils/forgetotp');
+const blogController = require('../controllers/blogController');
+const axios = require('axios');
 
-router.get('/adminlogin', (req, res) => {
-    res.render('adminLogin');
+router.get('/login', (req, res) => {
+    res.render('adminLogin', { siteKey: process.env.RECAPTCHA_SITE_KEY });
 })
 
-router.post('/login',async (req,res) => {
-    
-    const { email, pass } = req.body;
+
+router.post('/login', async (req, res) => {
+    const { email, pass, 'g-recaptcha-response': recaptchaToken } = req.body;
+
+    if (!recaptchaToken) {
+        return res.send('<script>alert("Please complete the CAPTCHA"); window.history.back();</script>');
+    }
+
+    // Google reCAPTCHA secret key
+    const secretKey = process.env.RECAPTCHA_SECRET_KEY;
 
     try {
+        // Verify captcha with Google
+        const response = await axios.post(
+            `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${recaptchaToken}`
+        );
+
+        if (!response.data.success) {
+            return res.send('<script>alert("Captcha verification failed"); window.history.back();</script>');
+        }
+
+        // Proceed with login
         const admin = await adminMong.findOne({ email });
 
         if (!admin) {
-            return res.send('<script>alert("admin does not exist")</script>');
+            return res.send('<script>alert("Admin does not exist"); window.history.back();</script>');
         }
-
 
         if (admin.pass === pass) {
-            req.session.adminEmail = { email: admin.email };
-            // return res.send('user login successful');
-            res.redirect(`/admin/adminDash`);
-        }
-        else {
+            const otp = Math.floor(100000 + Math.random() * 900000);
+            req.session.otp = otp;
+            req.session.tempAdmin = { email: admin.email, name: admin.name };
+
+            await sendOtptoAdmin(admin.email, otp); // Send OTP
+
+            return res.redirect('/admin/verify-otp');
+        } else {
             return res.send('<script>alert("Incorrect Password")</script>');
         }
+    } catch (err) {
+        console.error(err);
+        return res.send('<script>alert("Error occurred, please try again later")</script>');
+    }
+});
+
+
+router.get('/verify-otp', (req, res) => {
+    if (!req.session.tempAdmin) return res.redirect('/admin/login');
+    res.render('otpVerify'); // EJS form to enter OTP
+});
+
+router.post('/verify-otp', async(req, res) => {
+    const { enteredOtp } = req.body;
+
+    try {
+        if (parseInt(enteredOtp) === req.session.otp) {
+        req.session.adminEmail = req.session.tempAdmin;
+
+        // Clear temp values
+        delete req.session.tempAdmin;
+        delete req.session.otp;
+
+            return res.redirect('/admin/dashboard');
+          
+        }
+          else {
+        return res.send('<script>alert("Invalid OTP"); window.location="/admin/verify-otp";</script>');
+    }
+    } catch (err) {
+        console.log(err.message);
+    }
+     
+});
+
+
+
+router.get('/dashboard', (req, res) => {
+    if (!req.session.adminEmail) {
+        res.render('adminLogin', { siteKey: process.env.RECAPTCHA_SITE_KEY });
+    } else {
+        const { email,name } = req.session.adminEmail;
+        res.render('adminDash', { email, name });
+    }
+})
+
+// ------------------------------- forget password
+
+router.get('/forget-password', (req, res) => {
+    res.render('forgetPass');
+})
+
+router.post('/forget-password',async (req,res) => {
+    
+    try {
+        
+    const { email } = req.body;
+
+        const existadmin = await adminMong.findOne({ email });
+
+        if (!existadmin) {
+            return res.send('<script>alert("Admin not exist"); window.history.back();</script>');
+        }
+        // else {
+        //     res.redirect(`/admin/update-pass?email=${email}`);
+        // }
+
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+  const otpExpires = Date.now() + 5 * 60 * 1000;
+
+  existadmin.otp = otp;
+  existadmin.otpExpires = otpExpires;
+  await existadmin.save();
+
+  await forgetPasswordOtp(email, otp); 
+
+  res.send(`
+    <form action="/admin/verify-forgetotp" method="POST">
+      <input type="hidden" name="email" value="${email}" />
+      Enter OTP: <input type="text" name="otp" required />
+      <button type="submit">Verify OTP</button>
+    </form>
+  `);
+
 
     }
     catch (err) {
-         return res.send('<script>alert("error occured while login try again later")</script>');
-        
+        res.send('err');
     }
 
 })
 
-router.get('/adminDash', (req, res) => {
-    if (!req.session.adminEmail) {
-        res.render('adminLogin');
+// ------------------------------ verify
+
+router.post('/verify-forgetotp', async (req, res) => {
+  const { email, otp } = req.body;
+
+  const admin = await adminMong.findOne({ email });
+
+  if (!admin) return res.send('<script>alert("Admin not found"); window.history.back();</script>');
+
+
+
+  if (admin.otp.toString() !== otp.toString()) return res.send('<script>alert("Invalid Otp"); window.history.back();</script>');;
+
+  if (Date.now() > admin.otpExpires) return res.send('<script>alert("Otp expired"); window.history.back();</script>');
+
+  // Clear OTP after successful verification
+  admin.otp = null;
+  admin.otpExpires = null;
+  await admin.save();
+
+  // Redirect to update password page
+  return res.redirect(`/admin/update-pass?email=${email}`);
+});
+
+
+
+
+
+// ---------------------------- update password
+
+router.get('/update-pass',async (req,res) => {
+    
+    const { email } = req.query;
+
+    if (!email) {
+        return res.send('<script>alert("Email is required"); window.history.back();</script>');
+    }
+    return res.render('updatePass',{email});
+
+})
+
+router.post("/update-pass", async (req, res) => {
+  const { email, pass, confirmPass } = req.body;
+
+  if (!email || !pass || !confirmPass) {
+    return res.send('<script>alert("All fields are required"); window.history.back();</script>');
+  }
+
+  if (pass !== confirmPass) {
+    return res.send('<script>alert("Password and Confirm Password must be same"); window.history.back();</script>');
+  }
+
+  try {
+    const adminn = await adminMong.findOne({ email });
+
+    if (!adminn) {
+      return res.send('<script>alert("User not found"); window.history.back();</script>');
     } else {
-        const { email } = req.session.adminEmail;
-        res.render('adminDash', { email });
-    }
-})
+      adminn.pass = pass;
+      await adminn.save();
 
-// -------------------------------- change password
+        //   return res.send("Password Updated Successfully");
+        return res.render('adminLogin',{ siteKey: process.env.RECAPTCHA_SITE_KEY });
+    }
+  } catch (err) {
+    return res.send(
+      "there is an error in changing the password please try again later"
+    );
+  }
+});
+
+
+
+
+
+
+// -------------------------------- change password route dashboard
 
 router.get('/update-password', (req, res) => {
 
@@ -126,185 +300,40 @@ const upload = multer({
 // ---------------------------------- add blogs
 
 
-router.get('/add-blog', (req, res) => {
-    if (!req.session.adminEmail) {
-        res.render('adminLogin');
-    } else {
+router.get('/add-blog', blogController.getaddBlogPage);
 
-        res.render('AddBlogs');
-    }
-})
-
-router.post('/add-blog',upload.array('image',5), async (req, res) => {
-    
-    const { title, desc } = req.body;
-
-    const imagePath = req.files.map((file) => `/uploads/${file.filename}`);
-
-    try {
-        const newBlog = new blogMong({
-            title, desc, image: imagePath
-        })
-
-        await newBlog.save();
-        return res.send('<script>alert("Blog added")</script>');
-    }
-    catch (err) {
-        res.send(err.message);
-    }
-    
-})
+router.post('/add-blog', upload.array('image', 5), blogController.postaddBlogPage);
 
 // -------------------------------- manage blogs
 
-router.get('/manage-blog',async (req, res) => {
-    if (!req.session.adminEmail) {
-        res.render('adminLogin');
-    } else {
-        try {
-            const blog = await blogMong.find();
+router.get('/manage-blog', blogController.manageBlogPage);
 
-            res.render('manageBlogs', { blog });
-        }
-        catch (err) {
-            console.log(err);
-        }
-    }
-})
-
-router.get('/manage-blogapi',async (req, res) => {
-     try {
-            const blog = await blogMong.find();
-
-            // res.render('manageBlogs', { blog });
-            res.json(blog);
-    }   
-     catch (err) {
-         console.log(err);
-    }
-})
+router.get('/manage-blogapi', blogController.manageBlogPageapi);
 
 // ---------------------------------- edit blogs
 
-router.get('/edit-blog/:id',async (req,res) => {
-    try {
-        const editblog = await blogMong.findById(req.params.id);
-
-        res.render('editBlog', { editblog });
-    }
-    catch (err) {
-        console.log(err);
-    }
-})
+router.get('/edit-blog/:id', blogController.editBlogPage);
 
 // --------------------------------- update blogs
 
-router.post("/edit-blog/:id", async (req, res) => {
-  try {
-    const { title,desc} = req.body;
-
-    await blogMong.findByIdAndUpdate(req.params.id, {
-      title,desc
-    });
-
-    res.redirect("/admin/manage-blog");
-  } catch (err) {
-    res.send("cannot be edited at this time");
-  }
-});
+router.post("/edit-blog/:id", blogController.updateBlogs);
 
 // --------------------------------------- delete blog
 
-router.get('/delete-blog/:id',async (req,res) => {
-    
-    try {
-        await blogMong.findByIdAndDelete(req.params.id);
-        return res.redirect('/admin/manage-blog');
-    } catch (err) {
-        return res.send('cannot delete at this time');
-    }
-
-})
+router.get('/delete-blog/:id', blogController.deleteBlogs);
 
 // --------------------------------------- edit image
 
-router.get("/edit-image/:imgid/:imgindex", async (req, res) => {
-  try {
-    const { imgid, imgindex } = req.params;
-
-    const blogid = await blogMong.findById(imgid);
-
-    if (!blogid) {
-      return res.send("Blog not found");
-    }
-
-    const blogindex = blogid.image[imgindex];
-
-    if (!blogindex) {
-      return res.send("image not found");
-    }
-
-    res.render("editblogimage", { blogindex, imgid, imgindex });
-  } catch (err) {
-    res.send("error occured");
-  }
-});
+router.get("/edit-image/:imgid/:imgindex", blogController.getEditImage);
 
 router.post(
   "/edit-image/:imgid/:imgindex",
-  upload.single("file"),
-  async (req, res) => {
-    try {
-      const { imgid, imgindex } = req.params;
-      const file = req.file;
-
-      if (!file) {
-        return res.send("no blog found");
-      }
-
-      const bl = await blogMong.findById(imgid);
-
-      if (!bl) {
-        return res.send("no blog found");
-      }
-
-      if (!bl.image[imgindex]) {
-        return res.send("no blog image found");
-      }
-
-      const newimagepath = `/uploads/${file.filename}`;
-      bl.image[imgindex] = newimagepath;
-
-      await bl.save();
-          return res.send('<script>alert("Image changed successfull")</script>');
-    } catch (err) {
-      res.send('check network connection');
-    }
-  }
+  upload.single("file"),blogController.postEditImage
 );
 
 // ---------------------------------- delete image
 
-router.get('/delete-image/:imgid/:imgindex',async (req,res) => {
-    try {
-        const { imgid, imgindex } = req.params;
-
-        const deleteimg=await blogMong.findById(imgid);
-
-        if (!deleteimg) {
-            return res.send('<script>alert("cannot find blog image")</script>');
-        }
-
-        deleteimg.image.splice(imgindex, 1);
-
-        await deleteimg.save();
-        // res.redirect('/admin/edit-blog');
-        return res.send('<script>alert("image deleted successfully")</script>');
-    }
-    catch (err) {
-        res.send(err.message);
-    }
-})
+router.get('/delete-image/:imgid/:imgindex', blogController.deleteImage);
 
 // ---------------------------------- page cover image
 
@@ -452,7 +481,106 @@ router.get('/manage-user', async(req, res) => {
     }
 })
 
+// ----------------------------- reviews
 
+router.get('/add-review', (req, res) => {
+   if (!req.session.adminEmail) {
+        res.render('adminLogin', { siteKey: process.env.RECAPTCHA_SITE_KEY });
+   } else {
+        res.render('addReview');
+    }
+       
+})
+
+const uploadReview = multer({
+    storage: mystorage,
+    limits: {
+        fileSize: 5 * 1024 * 1024,
+    },
+    fileFilter: (req, file, cb) => {
+        const fileType = /jpg|jpeg|avif|png|webp/;
+        const extname = fileType.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = fileType.test(file.mimetype);
+
+        if (extname && mimetype) {
+            cb(null, true);
+        } else {
+            cb(new Error("Image format not supported"));
+        }
+    }
+})
+
+router.post('/add-review',uploadReview.single('image'),async (req,res) => {
+  try{
+      const { name, review } = req.body;
+      
+      const imagePath = `/uploads/${req.file.filename}`;
+
+    const newReview = new reviewMong({
+        name, review, image: imagePath
+    })
+
+    await newReview.save();
+    return res.send('<script>alert("Thanks"); window.history.back();</script>')
+  }
+  catch (err) {
+    res.send(err);
+  }
+})
+
+// ------------------------------ delete review
+
+router.get('/delete-review/:id',async (req,res) => {
+      
+       try {
+              await reviewMong.findByIdAndDelete(req.params.id);
+              return res.redirect('/admin/manage-review');
+          } catch (err) {
+              return res.send('cannot delete at this time');
+          }
+  
+
+})
+
+router.get('/manage-review',async (req,res) => {
+  try {
+    const review = await reviewMong.find();
+
+      return res.render('manageReview', { review });
+  }
+  catch (err) {
+    res.send(err);
+  }
+})
+
+router.get('/manage-reviewapi',async (req,res) => {
+  try {
+    const review = await reviewMong.find();
+
+      return res.json(review);
+  }
+  catch (err) {
+    res.json(err);
+  }
+})
+
+
+// --------------------------- sign out
+
+router.get('/signout', (req, res) => {
+    try {
+        req.session.destroy((err) => {
+            if (err) {
+                console.error('Session destroy error:', err);
+                return res.status(500).send('Unable to log out');
+            }
+            res.redirect('/admin/login'); // Redirect to login page after logout
+        });
+    } catch (error) {
+        console.error('Error during logout:', error);
+        res.status(500).send('Something went wrong');
+    }
+});
 
 
 module.exports = router;
