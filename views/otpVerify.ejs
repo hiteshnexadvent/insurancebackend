@@ -32,7 +32,8 @@
 
     input[type="number"] {
       width: 100%;
-      padding: 12px;
+      padding-top: 10px;
+      padding-bottom: 10px;
       margin-bottom: 20px;
       border: 1px solid #ccc;
       border-radius: 5px;
@@ -50,8 +51,18 @@
       cursor: pointer;
     }
 
-    button:hover {
+    button:hover:enabled {
       background-color: #45a049;
+    }
+
+    .resend-btn {
+      margin-top: 15px;
+      background-color: #2196F3;
+    }
+
+    .resend-btn:disabled {
+      background-color: #90caf9;
+      cursor: not-allowed;
     }
   </style>
 </head>
@@ -59,11 +70,34 @@
 
   <div class="container">
     <h2>Enter OTP</h2>
+
+    <!-- Verify OTP Form -->
     <form action="/admin/verify-otp" method="POST">
       <input type="number" name="enteredOtp" placeholder="Enter OTP" required />
       <button type="submit">Verify</button>
     </form>
+
+    <!-- Resend OTP Form -->
+    <form action="/admin/resend-otp" method="POST">
+      <button type="submit" class="resend-btn" id="resendBtn" disabled>Resend OTP in 30s</button>
+    </form>
   </div>
+
+  <script>
+    let resendBtn = document.getElementById('resendBtn');
+    let timeLeft = 30;
+
+    const timer = setInterval(() => {
+      timeLeft--;
+      resendBtn.innerText = `Resend OTP in ${timeLeft}s`;
+
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        resendBtn.disabled = false;
+        resendBtn.innerText = 'Resend OTP';
+      }
+    }, 1000);
+  </script>
 
 </body>
 </html>

@@ -13,12 +13,12 @@ const sendMailtoAdmin=async (userData) => {
     const mailOptions = {
         from: 'hs706507@gmail.com',
         to: 'hitesh@nexadvent.com',
-        subject: 'New registered User',
+        city: 'New registered User',
         html: `
         <h3>New User Registered</h3>
       <p><strong>Name:</strong> ${userData.name}</p>
       <p><strong>Email:</strong> ${userData.email}</p>
-      <p><strong>Subject:</strong> ${userData.subject}</p>
+      <p><strong>city:</strong> ${userData.city}</p>
       <p><strong>Message:</strong> ${userData.message}</p>`
     };
 

@@ -1,21 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Add Cover Image</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+
+    .page-wrapper {
+      padding: 80px 20px 20px 250px; /* header and sidebar space assumed */
+      box-sizing: border-box;
+    }
+
+    .container {
+      background: white;
+      padding: 25px 30px;
+      border-radius: 10px;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 350px;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 25px;
+      font-size: 22px;
+      color: #333;
+    }
+
+    input[type="file"] {
+      display: block;
+      margin: 0 auto 20px auto;
+      padding: 8px;
+      font-size: 15px;
+    }
+
+    button {
+      background-color: #019785;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 15px;
+      width: 100%;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #007b6e;
+    }
+
+    @media (max-width: 768px) {
+      .page-wrapper {
+        padding: 80px 20px 20px 20px;
+        display: flex;
+        justify-content: center;
+      }
+
+      .container {
+        max-width: 90%;
+      }
+    }
+  </style>
 </head>
 <body>
-    <h1>Add Pages Cover Images </h1>
 
-    <form action="/admin/add-coverpage-image" enctype="multipart/form-data" method="post">
+  <%- include('Navbar') %>
+  <%- include('Sidebar') %>
 
-        <input type="file" name="image" accept="image/*" required>
-
-        <button>Upload</button>
-
-    </form>
-
-
+  <div class="page-wrapper">
+    <div class="container">
+      <h1>Add Pages Cover Images</h1>
+      <form action="/admin/add-coverpage-image" enctype="multipart/form-data" method="post">
+        <input type="file" name="image" accept="image/*" required />
+        <button type="submit">Upload</button>
+      </form>
+    </div>
+  </div>
 </body>
 </html>

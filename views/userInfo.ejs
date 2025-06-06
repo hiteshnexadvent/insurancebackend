@@ -134,7 +134,8 @@
                     <tr>
                         <th>Name</th>
                         <th>Email</th>
-                        <th>Subject</th>
+                        <th>Mobile</th>
+                        <th>City</th>
                         <th>Message</th>
                     </tr>
                 </thead>
@@ -144,7 +145,8 @@
                             <tr>
                                 <td><%= item.name %></td>
                                 <td><%= item.email %></td>
-                                <td><%= item.subject %></td>
+                                <td><%= item.mobile %></td>
+                                <td><%= item.city %></td>
                                 <td><%= item.message %></td>
                             </tr>
                         <% }) %>
@@ -187,14 +189,14 @@
       return;
     }
 
-    let csv = "Name,Email,Subject,Message\n";
+    let csv = "Name,Email,city,Message\n";
 
     data.forEach(item => {
       const name = (item.name || '').replace(/"/g, '""');
       const email = (item.email || '').replace(/"/g, '""');
-      const subject = (item.subject || '').replace(/"/g, '""');
+      const city = (item.city || '').replace(/"/g, '""');
       const message = (item.message || '').replace(/"/g, '""');
-      csv += `"${name}","${email}","${subject}","${message}"\n`;
+      csv += `"${name}","${email}","${city}","${message}"\n`;
     });
 
     const blob = new Blob([csv], { type: "text/csv" });

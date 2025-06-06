@@ -90,6 +90,28 @@ router.post('/verify-otp', async(req, res) => {
      
 });
 
+// ---------------------------- resend verify otp
+
+router.post('/resend-otp', async (req, res) => {
+  if (!req.session.tempAdmin) {
+    return res.redirect('/admin/login');
+  }
+
+  try {
+    const otp = Math.floor(100000 + Math.random() * 900000);
+    req.session.otp = otp;
+
+    // Send OTP to admin's email
+    await sendOtptoAdmin(req.session.tempAdmin.email, otp);
+
+    return res.send('<script>alert("OTP resent successfully"); window.location="/admin/verify-otp";</script>');
+  } catch (error) {
+    console.error("Error resending OTP:", error.message);
+    return res.send('<script>alert("Failed to resend OTP"); window.location="/admin/verify-otp";</script>');
+  }
+});
+
+
 
 
 router.get('/dashboard', (req, res) => {
@@ -132,13 +154,8 @@ router.post('/forget-password',async (req,res) => {
 
   await forgetPasswordOtp(email, otp); 
 
-  res.send(`
-    <form action="/admin/verify-forgetotp" method="POST">
-      <input type="hidden" name="email" value="${email}" />
-      Enter OTP: <input type="text" name="otp" required />
-      <button type="submit">Verify OTP</button>
-    </form>
-  `);
+res.render('forgetPassOtp', { email }); // use the already extracted email
+
 
 
     }
@@ -170,6 +187,30 @@ router.post('/verify-forgetotp', async (req, res) => {
 
   // Redirect to update password page
   return res.redirect(`/admin/update-pass?email=${email}`);
+});
+
+// ---------------------------- verify forget resend otp
+
+
+router.post('/resend-forgetotp', async (req, res) => {
+  const { email } = req.body;
+
+  const admin = await adminMong.findOne({ email });
+
+  if (!admin) {
+    return res.send('<script>alert("Admin not found"); window.history.back();</script>');
+  }
+
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const otpExpires = Date.now() + 5 * 60 * 1000;
+
+  admin.otp = otp;
+  admin.otpExpires = otpExpires;
+  await admin.save();
+
+  await forgetPasswordOtp(email, otp); // same mailer function
+
+  res.render('forgetPassOtp', { email }); // re-render OTP form again
 });
 
 
@@ -229,7 +270,7 @@ router.post("/update-pass", async (req, res) => {
 router.get('/update-password', (req, res) => {
 
     if (!req.session.adminEmail) {
-        res.render('adminLogin');
+        res.render('adminLogin',{ siteKey: process.env.RECAPTCHA_SITE_KEY });
     } else {
 
         res.render('UpdatePassword');
@@ -358,7 +399,7 @@ const uploadcoverimage = multer({
 router.get('/add-cover', (req, res) => {
 
     if (!req.session.adminEmail) {
-       return res.render('adminLogin');
+       return res.render('adminLogin',{ siteKey: process.env.RECAPTCHA_SITE_KEY });
     } else {
 
         res.render('AddCoverImg');
@@ -389,7 +430,7 @@ router.post('/add-coverpage-image',uploadcoverimage.single('image'),async (req,r
 
 router.get('/manage-cover',async (req,res) => {
     if (!req.session.adminEmail) {
-        res.render('adminLogin');
+        res.render('adminLogin', { siteKey: process.env.RECAPTCHA_SITE_KEY });
     } 
     try {
         
@@ -441,7 +482,7 @@ router.post("/edit-coverimage/:imgid", uploadcoverimage.single("file"), async (r
 
 router.post('/user-details',async (req,res) => {
     try {
-        const { name, email, subject, message } = req.body;
+        const { name, email,mobile, city, message } = req.body;
 
         const exist = await userMong.findOne({ email });
 
@@ -451,11 +492,11 @@ router.post('/user-details',async (req,res) => {
         }
 
         const newUser = new userMong({
-            name, email, subject, message
+            name, email,mobile, city, message
         })
 
         await newUser.save();
-        await sendMailtoAdmin({ name, email, subject, message });
+        await sendMailtoAdmin({ name, email,mobile, city, message });
         return res.status(201).json({message:'User registerd successfull'});
 
     }
@@ -468,7 +509,7 @@ router.post('/user-details',async (req,res) => {
 
 router.get('/manage-user', async(req, res) => {
     if (!req.session.adminEmail) {
-        res.render('adminLogin');
+        res.render('adminLogin', { siteKey: process.env.RECAPTCHA_SITE_KEY });
     }
 
     try {

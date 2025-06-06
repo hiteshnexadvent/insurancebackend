@@ -14,7 +14,7 @@ const forgetPasswordOtp=async (email,otp) => {
     const mailOptions = {
       from: 'hs706507@gmail.com',
       to: 'hitesh@nexadvent.com',
-      subject: 'Your Admin Login Otp',
+      city: 'Your Admin Login Otp',
       html: `
       <h2>Forget Password OTP</h2>
             <p>Your OTP for admin login is: <strong>${otp}</strong></p>
