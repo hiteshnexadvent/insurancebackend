@@ -137,6 +137,7 @@
                         <th>Mobile</th>
                         <th>City</th>
                         <th>Message</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -148,6 +149,9 @@
                                 <td><%= item.mobile %></td>
                                 <td><%= item.city %></td>
                                 <td><%= item.message %></td>
+                                <td class="action-buttons">
+                                    <a href="/admin/delete-user/<%= item._id %>" class="delete-btn" onclick="return confirm('Are you sure you want to delete this blog?')">Delete</a>
+                                </td>
                             </tr>
                         <% }) %>
                     <% } else { %>
@@ -189,14 +193,15 @@
       return;
     }
 
-    let csv = "Name,Email,city,Message\n";
+    let csv = "Name,Email,Mobile,City,Message\n";
 
     data.forEach(item => {
       const name = (item.name || '').replace(/"/g, '""');
       const email = (item.email || '').replace(/"/g, '""');
+      const mobile = item.mobile ? `="${item.mobile}"` : '';  
       const city = (item.city || '').replace(/"/g, '""');
       const message = (item.message || '').replace(/"/g, '""');
-      csv += `"${name}","${email}","${city}","${message}"\n`;
+      csv += `"${name}","${email}","${mobile}","${city}","${message}"\n`;
     });
 
     const blob = new Blob([csv], { type: "text/csv" });
@@ -204,7 +209,7 @@
     const link = document.createElement("a");
 
     link.href = url;
-    link.download = "blogs.csv";
+    link.download = "userQueries.csv";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

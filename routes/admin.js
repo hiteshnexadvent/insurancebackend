@@ -522,6 +522,18 @@ router.get('/manage-user', async(req, res) => {
     }
 })
 
+router.get('/delete-user/:id',async (req,res) => {
+    
+    try {
+                await userMong.findByIdAndDelete(req.params.id);
+                return res.redirect('/admin/manage-user');
+            } catch (err) {
+                return res.send('cannot delete at this time');
+            }
+    
+
+})
+
 // ----------------------------- reviews
 
 router.get('/add-review', (req, res) => {
