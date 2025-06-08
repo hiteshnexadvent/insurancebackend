@@ -20,7 +20,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // -------------------------------- cors
 
 app.use(cors({
-  origin: [process.env.REACT_APP_API_URL, ],
+  origin: process.env.REACT_APP_API_URL, 
   credentials: true,
 }))
 
