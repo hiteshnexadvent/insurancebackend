@@ -6,122 +6,45 @@ const userMong = require('../models/UserQuery_Mong');
 const reviewMong = require('../models/Review_Mong');
 const multer = require('multer');
 const path = require('path');
+const bcrypt = require('bcrypt');
 const sendMailtoAdmin = require('../utils/SendMail');
 const sendOtptoAdmin = require('../utils/sendotp');
 const forgetPasswordOtp = require('../utils/forgetotp');
 const blogController = require('../controllers/blogController');
-const axios = require('axios');
+const adminAuthentication = require('../controllers/adminAuthentication');
 
-router.get('/login', (req, res) => {
-    res.render('adminLogin', { siteKey: process.env.RECAPTCHA_SITE_KEY });
+const { validationResult } = require('express-validator');
+
+const { registeredValidator } = require('../validation/validation');
+
+
+
+router.get('/signup', (req, res) => {
+    res.render('adminSignup');
 })
 
-
-router.post('/login', async (req, res) => {
-    const { email, pass, 'g-recaptcha-response': recaptchaToken } = req.body;
-
-    if (!recaptchaToken) {
-        return res.send('<script>alert("Please complete the CAPTCHA"); window.history.back();</script>');
-    }
-
-    // Google reCAPTCHA secret key
-    const secretKey = process.env.RECAPTCHA_SECRET_KEY;
-
-    try {
-        // Verify captcha with Google
-        const response = await axios.post(
-            `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${recaptchaToken}`
-        );
-
-        if (!response.data.success) {
-            return res.send('<script>alert("Captcha verification failed"); window.history.back();</script>');
-        }
-
-        // Proceed with login
-        const admin = await adminMong.findOne({ email });
-
-        if (!admin) {
-            return res.send('<script>alert("Admin does not exist"); window.history.back();</script>');
-        }
-
-        if (admin.pass === pass) {
-            const otp = Math.floor(100000 + Math.random() * 900000);
-            req.session.otp = otp;
-            req.session.tempAdmin = { email: admin.email, name: admin.name };
-
-            await sendOtptoAdmin(admin.email, otp); // Send OTP
-
-            return res.redirect('/admin/verify-otp');
-        } else {
-            return res.send('<script>alert("Incorrect Password")</script>');
-        }
-    } catch (err) {
-        console.error(err);
-        return res.send('<script>alert("Error occurred, please try again later")</script>');
-    }
-});
+router.post('/signup', adminAuthentication.postadminSignup);
 
 
-router.get('/verify-otp', (req, res) => {
-    if (!req.session.tempAdmin) return res.redirect('/admin/login');
-    res.render('otpVerify'); // EJS form to enter OTP
-});
+router.get('/login', adminAuthentication.getadminLogin);
 
-router.post('/verify-otp', async(req, res) => {
-    const { enteredOtp } = req.body;
 
-    try {
-        if (parseInt(enteredOtp) === req.session.otp) {
-        req.session.adminEmail = req.session.tempAdmin;
+router.post('/login', adminAuthentication.postadminLogin);
 
-        // Clear temp values
-        delete req.session.tempAdmin;
-        delete req.session.otp;
 
-            return res.redirect('/admin/dashboard');
-          
-        }
-          else {
-        return res.send('<script>alert("Invalid OTP"); window.location="/admin/verify-otp";</script>');
-    }
-    } catch (err) {
-        console.log(err.message);
-    }
-     
-});
+router.get('/verify-otp', adminAuthentication.getVerifyOtp);
+
+router.post('/verify-otp', adminAuthentication.postVerifyOtp);
+
 
 // ---------------------------- resend verify otp
 
-router.post('/resend-otp', async (req, res) => {
-  if (!req.session.tempAdmin) {
-    return res.redirect('/admin/login');
-  }
-
-  try {
-    const otp = Math.floor(100000 + Math.random() * 900000);
-    req.session.otp = otp;
-
-    // Send OTP to admin's email
-    await sendOtptoAdmin(req.session.tempAdmin.email, otp);
-
-    return res.send('<script>alert("OTP resent successfully"); window.location="/admin/verify-otp";</script>');
-  } catch (error) {
-    console.error("Error resending OTP:", error.message);
-    return res.send('<script>alert("Failed to resend OTP"); window.location="/admin/verify-otp";</script>');
-  }
-});
+router.post('/resend-otp', adminAuthentication.postResendOtp);
 
 
 
 
-router.get('/dashboard', (req, res) => {
-    if (!req.session.adminEmail) {
-        res.render('adminLogin', { siteKey: process.env.RECAPTCHA_SITE_KEY });
-    } else {
-        const { email,name } = req.session.adminEmail;
-        res.render('adminDash', { email, name });
-    }
-})
+router.get('/dashboard', adminAuthentication.getadminDashboard);
 
 // ------------------------------- forget password
 
@@ -129,187 +52,33 @@ router.get('/forget-password', (req, res) => {
     res.render('forgetPass');
 })
 
-router.post('/forget-password',async (req,res) => {
-    
-    try {
-        
-    const { email } = req.body;
-
-        const existadmin = await adminMong.findOne({ email });
-
-        if (!existadmin) {
-            return res.send('<script>alert("Admin not exist"); window.history.back();</script>');
-        }
-        // else {
-        //     res.redirect(`/admin/update-pass?email=${email}`);
-        // }
-
-
-        const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
-  const otpExpires = Date.now() + 5 * 60 * 1000;
-
-  existadmin.otp = otp;
-  existadmin.otpExpires = otpExpires;
-  await existadmin.save();
-
-  await forgetPasswordOtp(email, otp); 
-
-res.render('forgetPassOtp', { email }); // use the already extracted email
-
-
-
-    }
-    catch (err) {
-        res.send('err');
-    }
-
-})
+router.post('/forget-password', adminAuthentication.postforgetPassword);
 
 // ------------------------------ verify
 
-router.post('/verify-forgetotp', async (req, res) => {
-  const { email, otp } = req.body;
-
-  const admin = await adminMong.findOne({ email });
-
-  if (!admin) return res.send('<script>alert("Admin not found"); window.history.back();</script>');
-
-
-
-  if (admin.otp.toString() !== otp.toString()) return res.send('<script>alert("Invalid Otp"); window.history.back();</script>');;
-
-  if (Date.now() > admin.otpExpires) return res.send('<script>alert("Otp expired"); window.history.back();</script>');
-
-  // Clear OTP after successful verification
-  admin.otp = null;
-  admin.otpExpires = null;
-  await admin.save();
-
-  // Redirect to update password page
-  return res.redirect(`/admin/update-pass?email=${email}`);
-});
+router.post('/verify-forgetotp', adminAuthentication.postverifyforgetPassword);
 
 // ---------------------------- verify forget resend otp
 
 
-router.post('/resend-forgetotp', async (req, res) => {
-  const { email } = req.body;
-
-  const admin = await adminMong.findOne({ email });
-
-  if (!admin) {
-    return res.send('<script>alert("Admin not found"); window.history.back();</script>');
-  }
-
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  const otpExpires = Date.now() + 5 * 60 * 1000;
-
-  admin.otp = otp;
-  admin.otpExpires = otpExpires;
-  await admin.save();
-
-  await forgetPasswordOtp(email, otp); // same mailer function
-
-  res.render('forgetPassOtp', { email }); // re-render OTP form again
-});
+router.post('/resend-forgetotp', adminAuthentication.postresendForgetotp);
 
 
 
+// ---------------------------- update forget password
 
+router.get('/update-pass', adminAuthentication.getupdateforgetpassword);
 
-// ---------------------------- update password
-
-router.get('/update-pass',async (req,res) => {
-    
-    const { email } = req.query;
-
-    if (!email) {
-        return res.send('<script>alert("Email is required"); window.history.back();</script>');
-    }
-    return res.render('updatePass',{email});
-
-})
-
-router.post("/update-pass", async (req, res) => {
-  const { email, pass, confirmPass } = req.body;
-
-  if (!email || !pass || !confirmPass) {
-    return res.send('<script>alert("All fields are required"); window.history.back();</script>');
-  }
-
-  if (pass !== confirmPass) {
-    return res.send('<script>alert("Password and Confirm Password must be same"); window.history.back();</script>');
-  }
-
-  try {
-    const adminn = await adminMong.findOne({ email });
-
-    if (!adminn) {
-      return res.send('<script>alert("User not found"); window.history.back();</script>');
-    } else {
-      adminn.pass = pass;
-      await adminn.save();
-
-        //   return res.send("Password Updated Successfully");
-        return res.render('adminLogin',{ siteKey: process.env.RECAPTCHA_SITE_KEY });
-    }
-  } catch (err) {
-    return res.send(
-      "there is an error in changing the password please try again later"
-    );
-  }
-});
-
-
+router.post("/update-pass", adminAuthentication.postupdateforgetPassword);
 
 
 
 
 // -------------------------------- change password route dashboard
 
-router.get('/update-password', (req, res) => {
+router.get('/update-password', adminAuthentication.getdashPass);
 
-    if (!req.session.adminEmail) {
-        res.render('adminLogin',{ siteKey: process.env.RECAPTCHA_SITE_KEY });
-    } else {
-
-        res.render('UpdatePassword');
-    }
-})
-
-router.post('/update-password', async (req, res) => {
-    const { password, npassword, cnpassword } = req.body;
-
-    if (!password || !npassword || !cnpassword) {
-        return res.send('<script>alert("Please enter password")</script>');
-    } 
-
-    if (npassword !== cnpassword) {
-        return res.send('<script>alert("Password and confirm password must be same")</script>');
-    }
-
-    const  email  = req.session.adminEmail;
-    if (!email) {
-        res.render('adminLogin');
-    }
-
-
-    try {
-        const adminn = await adminMong.findOne({ pass:password });
-
-        if (!adminn) {
-            return res.send('<script>alert("Current password is wrong")</script>');
-        } else {
-            adminn.pass = npassword;
-            await adminn.save();
-            return res.send('<script>alert("Password changed successfully")</script>');
-        }
-
-    } catch (err) {
-        return res.send(err.message);
-    }
-
-})
+router.post('/update-password', adminAuthentication.postdashPass);
 
 // ---------------------------------- multer for blogs
 
@@ -480,9 +249,18 @@ router.post("/edit-coverimage/:imgid", uploadcoverimage.single("file"), async (r
 
 // ----------------------------------- contact form
 
-router.post('/user-details',async (req,res) => {
+router.post('/user-details', registeredValidator, async (req, res) => {
+
     try {
-        const { name, email,mobile, city, message } = req.body;
+        const { name, email, mobile, city, message } = req.body;
+        
+        const error = validationResult(req);
+
+        if (!error.isEmpty()) {
+        return res.status(400).json({ message: error.array()[0].msg });
+        
+        }
+        
 
         const exist = await userMong.findOne({ email });
 

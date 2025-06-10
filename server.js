@@ -29,32 +29,32 @@ console.log("REACT_APP_API_URL:", process.env.REACT_APP_API_URL); // Likely unde
 
 // -------------------------------- session for live
 
-app.use(session({
-    secret: process.env.SECRET_SESSION_KEY,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        sameSite: 'none',
-        secure: true,
-        maxAge: 24 * 60 * 60 * 1000,
-        httpOnly: true,
-    }
-}))
+// app.use(session({
+//     secret: process.env.SECRET_SESSION_KEY,
+//     resave: false,
+//     saveUninitialized: false,
+//     cookie: {
+//         sameSite: 'none',
+//         secure: true,
+//         maxAge: 24 * 60 * 60 * 1000,
+//         httpOnly: true,
+//     }
+// }))
 
 // -------------------------------- session for localhost
 
-// app.use(
-//     session({
-//       secret: "hitesh2822", 
-//       resave: false,
-//       saveUninitialized: true,
-//       cookie: { 
-//         secure: false,
-//         maxAge: 24 * 60 * 60 * 1000,
-//         httpOnly: true
-//       }, 
-//     })
-//   );
+app.use(
+    session({
+      secret: "hitesh2822", 
+      resave: false,
+      saveUninitialized: true,
+      cookie: { 
+        secure: false,
+        maxAge: 24 * 60 * 60 * 1000,
+        httpOnly: true
+      }, 
+    })
+  );
 
 
 // ------------------------------------ mongoose
