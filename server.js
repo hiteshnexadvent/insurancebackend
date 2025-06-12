@@ -24,8 +24,6 @@ app.use(cors({
   credentials: true,
 }))
 
-console.log("REACT_APP_API_URL:", process.env.REACT_APP_API_URL); // Likely undefined
-
 
 // -------------------------------- session for live
 

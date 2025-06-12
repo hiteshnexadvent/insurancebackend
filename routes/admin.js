@@ -1,20 +1,16 @@
 const express = require('express');
 const router = express.Router(); 
-const adminMong = require('../models/Admin_Mong');
 const coverimagemong = require('../models/BlogCover.Mong');
 const userMong = require('../models/UserQuery_Mong');
 const reviewMong = require('../models/Review_Mong');
 const multer = require('multer');
 const path = require('path');
-const bcrypt = require('bcrypt');
 const sendMailtoAdmin = require('../utils/SendMail');
-const sendOtptoAdmin = require('../utils/sendotp');
-const forgetPasswordOtp = require('../utils/forgetotp');
 const blogController = require('../controllers/blogController');
 const adminAuthentication = require('../controllers/adminAuthentication');
+const scheduleController = require('../controllers/scheduleController');
 
 const { validationResult } = require('express-validator');
-
 const { registeredValidator } = require('../validation/validation');
 
 
@@ -92,7 +88,7 @@ const mystorage = multer.diskStorage({
 const upload = multer({
     storage: mystorage,
     limits: {
-        fileSize: 5 * 1024 * 1024,
+        fileSize: 15 * 1024 * 1024,
     },
     fileFilter: (req, file, cb) => {
         const fileType = /jpg|jpeg|avif|png|webp/;
@@ -150,7 +146,7 @@ router.get('/delete-image/:imgid/:imgindex', blogController.deleteImage);
 const uploadcoverimage = multer({
     storage: mystorage,
     limits: {
-        fileSize: 5 * 1024 * 1024,
+        fileSize: 15 * 1024 * 1024,
     },
     fileFilter: (req, file, cb) => {
         const fileType = /jpg|jpeg|avif|png|webp/;
@@ -326,7 +322,7 @@ router.get('/add-review', (req, res) => {
 const uploadReview = multer({
     storage: mystorage,
     limits: {
-        fileSize: 5 * 1024 * 1024,
+        fileSize: 15 * 1024 * 1024,
     },
     fileFilter: (req, file, cb) => {
         const fileType = /jpg|jpeg|avif|png|webp/;
@@ -395,6 +391,14 @@ router.get('/manage-reviewapi',async (req,res) => {
   }
 })
 
+// -------------------------- schedule
+
+router.post('/schedule', scheduleController.postSchedule);
+
+router.get('/manage-schedule', scheduleController.getmanageSchedule);
+
+router.get('/delete-schedule/:id', scheduleController.deleteSchedule);
+
 
 // --------------------------- sign out
 
@@ -405,7 +409,7 @@ router.get('/signout', (req, res) => {
                 console.error('Session destroy error:', err);
                 return res.status(500).send('Unable to log out');
             }
-            res.redirect('/admin/login'); // Redirect to login page after logout
+            res.redirect('/admin/login'); 
         });
     } catch (error) {
         console.error('Error during logout:', error);
