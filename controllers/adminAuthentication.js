@@ -315,7 +315,7 @@ exports.postdashPass=async (req,res) => {
 
     const  email  = req.session.adminEmail;
     if (!email) {
-        return res.render('adminLogin');
+        return res.render('adminLogin',{ siteKey: process.env.RECAPTCHA_SITE_KEY });
     }
 
 
@@ -340,4 +340,19 @@ exports.postdashPass=async (req,res) => {
         return res.send(err.message);
     }
 
+}
+
+exports.adminLogout= (req,res) => {
+    try {
+        req.session.destroy((err) => {
+            if (err) {
+                console.error('Session destroy error:', err);
+                return res.status(500).send('Unable to log out');
+            }
+            res.redirect('/admin/login'); 
+        });
+    } catch (error) {
+        console.error('Error during logout:', error);
+        res.status(500).send('Something went wrong');
+    }
 }

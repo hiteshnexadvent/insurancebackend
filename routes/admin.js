@@ -402,20 +402,7 @@ router.get('/delete-schedule/:id', scheduleController.deleteSchedule);
 
 // --------------------------- sign out
 
-router.get('/signout', (req, res) => {
-    try {
-        req.session.destroy((err) => {
-            if (err) {
-                console.error('Session destroy error:', err);
-                return res.status(500).send('Unable to log out');
-            }
-            res.redirect('/admin/login'); 
-        });
-    } catch (error) {
-        console.error('Error during logout:', error);
-        res.status(500).send('Something went wrong');
-    }
-});
+router.get('/signout', adminAuthentication.adminLogout);
 
 
 module.exports = router;
